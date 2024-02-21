@@ -57,7 +57,7 @@ function create() {
     passarinho.subindo = true;
 }
 
-// Função update: Atualiza a posição do passaro na tela, criando um movimento horizontal. Quando o passaro atinge os limites esquerdo ou direito, inverte sua direção.
+// Função update: Atualiza a posição do passaro na tela, criando um movimento horizontal e vertical. Quando o passaro atinge os limites esquerdo ou direito, inverte sua direção. Assim quando atinge o topo desce e vice versa.
 function update() { 
     if (passarinho.x === 100){
         passarinho.setFlip(false, false);
