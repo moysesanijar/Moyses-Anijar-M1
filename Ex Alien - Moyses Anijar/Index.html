@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exercício do Alien</title>
+    <title>Exercício do Peixe</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
         body {
@@ -15,22 +15,94 @@
         }
     </style>
 </head>
-
 <body>
-    <!-- Definindo a largura e a altura do jogo -->
     <script>
         const larguraJogo = 700;
         const alturaJogo = 850;
 
-        var alien;
-        var teclas;
-        var fogo;
-        var plataforma;
-        var moeda;
-        var placar;
-        var pontuacao = 0;
+        class WelcomeScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'WelcomeScene' });
+            }
 
-        // Configuração inicial do jogo, incluindo dimensões e física
+            preload() {
+                this.load.image('background', 'assets/bg.png');
+            }
+
+            create() {
+                this.add.image(larguraJogo / 2, alturaJogo / 2, 'background');
+                let playButton = this.add.text(larguraJogo / 2, alturaJogo / 2, 'Jogar', { font: '40px Arial', fill: '#ffffff' })
+                .setInteractive()
+                .setOrigin(0.5);
+
+                playButton.on('pointerdown', () => this.scene.start('GameScene'));
+            }
+        }
+
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+            }
+
+            preload() {
+                this.load.image('background', 'assets/bg.png');
+                this.load.image('peixe', 'assets/peixe.png');
+                this.load.image('moeda', 'assets/moeda.png');
+            }
+
+            create() {
+                this.add.image(larguraJogo / 2, alturaJogo / 2, 'background');
+                this.peixe = this.physics.add.sprite(larguraJogo / 2, alturaJogo / 2, 'peixe').setCollideWorldBounds(true);
+                this.moeda = this.physics.add.sprite(Phaser.Math.Between(100, larguraJogo - 100), 0, 'moeda');
+                this.moeda.setVelocityY(150); // Velocidade da queda da moeda
+
+                this.physics.world.bounds.width = larguraJogo;
+                this.physics.world.bounds.height = alturaJogo;
+                this.moeda.setCollideWorldBounds(true);
+                this.moeda.body.onWorldBounds = true; // Habilita evento de colisão com as bordas do mundo
+
+                this.physics.world.on('worldbounds', function(body) {
+                    // Verifica se a moeda atingiu a parte inferior da tela
+                    if (body.gameObject === this.moeda && body.blocked.down) {
+                        this.moeda.setPosition(Phaser.Math.Between(100, larguraJogo - 100), 0);
+                    }
+                }, this);
+
+                this.teclas = this.input.keyboard.createCursorKeys();
+                this.placar = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#000' });
+                this.pontuacao = 0;
+
+                this.physics.add.overlap(this.peixe, this.moeda, this.coletaMoeda, null, this);
+            }
+
+            coletaMoeda(peixe, moeda) {
+                this.pontuacao += 1;
+                this.placar.setText('Pontos: ' + this.pontuacao);
+                this.moeda.setPosition(Phaser.Math.Between(100, larguraJogo - 100), 0);
+            }
+
+            update() {
+                const { left, right, up, down } = this.teclas;
+                               const velocidadePeixe = 300; // Aumenta a velocidade do peixe
+
+                if (left.isDown) {
+                    this.peixe.setVelocityX(-velocidadePeixe);
+                } else if (right.isDown) {
+                    this.peixe.setVelocityX(velocidadePeixe);
+                } else {
+                    this.peixe.setVelocityX(0);
+                }
+
+                if (up.isDown) {
+                    this.peixe.setVelocityY(-velocidadePeixe);
+                } else if (down.isDown) {
+                    this.peixe.setVelocityY(velocidadePeixe);
+                } else {
+                    this.peixe.setVelocityY(0);
+                }
+            }
+        }
+
         const config = {
             type: Phaser.AUTO,
             width: larguraJogo,
@@ -38,84 +110,14 @@
             physics: {
                 default: 'arcade',
                 arcade: {
-                    gravity: { y: 300 },
-                    debug: true 
+                    gravity: { y: 200 }, // A gravidade foi adicionada para que a moeda caia.
+                    debug: false
                 }
             },
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            }
+            scene: [WelcomeScene, GameScene]
         };
 
-        // Inicializando o jogo com as configurações definidas
         const game = new Phaser.Game(config);
-
-        function preload() {
-            this.load.image('background', 'assets/bg.png');
-            this.load.image('player', 'assets/alienigena.png');
-            this.load.image('fogo', 'assets/turbo.png');
-            this.load.image('plataforma', 'assets/tijolos.png');
-            this.load.image('moeda', 'assets/moeda.png');
-            this.load.image('arvore', 'assets/arvore1.png');
-        }
-        // Criação  dos elementos do jogo
-        function create() {
-            this.add.image(larguraJogo / 2, alturaJogo / 2, 'background');
-            alien = this.physics.add.sprite(larguraJogo / 2, alturaJogo / 2, 'player').setCollideWorldBounds(true);
-            fogo = this.add.sprite(0, 0, 'fogo').setVisible(false);
-            plataforma = this.physics.add.staticImage(larguraJogo / 2, alturaJogo - 50, 'plataforma'); 
-            moeda = this.physics.add.sprite(Phaser.Math.Between(100, larguraJogo - 100), Phaser.Math.Between(100, alturaJogo - 200), 'moeda').setCollideWorldBounds(true).setBounce(1);
-            this.physics.add.collider(alien, plataforma);
-            this.physics.add.collider(moeda, plataforma);
-
-            teclas = this.input.keyboard.createCursorKeys();
-
-            placar = this.add.text(16, 16, 'Moedas: 0', { fontSize: '32px', fill: '#000' });
-
-            this.physics.add.overlap(alien, moeda, coletaMoeda, null, this);
-            obstaculo = this.physics.add.staticImage(100, alturaJogo - 100, 'arvore').setScale(0.5);
-
-            this.physics.add.collider(moeda, obstaculo);
-        }
-
-        function update() {
-            if (teclas.left.isDown) {
-                alien.setVelocityX(-160);
-                semTurbo();
-            } else if (teclas.right.isDown) {
-                alien.setVelocityX(160);
-                semTurbo();
-            } else {
-                alien.setVelocityX(0);
-            }
-
-            if (teclas.up.isDown) {
-                alien.setVelocityY(-330);
-                ativarTurbo();
-            } else {
-                semTurbo();
-            }
-
-            fogo.setPosition(alien.x, alien.y + alien.height / 2);
-        }
-
-        function ativarTurbo() {
-            fogo.setVisible(true);
-        }
-
-        function semTurbo() {
-            fogo.setVisible(false);
-        }
-
-        function coletaMoeda(alien, moeda) {
-            moeda.disableBody(true, true);
-            pontuacao += 1;
-            placar.setText('Moedas: ' + pontuacao);
-
-            moeda.enableBody(true, Phaser.Math.Between(100, larguraJogo - 100), Phaser.Math.Between(100, alturaJogo - 200), true, true);
-        }
     </script>
 </body>
 </html>
